@@ -1,6 +1,7 @@
 # GLB for AR and VR
 This repository is a demo repository to showcase a Aframe and AR.js visualization of GLB files.
 
+
 ## Files in the Repository
 The following description explain which file is used for a specific job or purpose.
 * `index.html` is the main web server file that branches into the different examples as HTML files.
