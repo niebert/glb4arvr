@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html>
+   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML4Aframe</title>
+  <script src="js/showhide.js"></script>
+  <script src="js/string.js"></script>
+  <script src="js/load4file.js"></script>
+  <script src="js/save4file.js"></script>
+
+  <script>
+	  var vDataJSON = {
+		  "html4aframe":"HTML for Aframe",
+		  "html4ar":"HTML for AR Marker",
+		  "html4argeo":"HTML for AR Geolocation",
+      "initdata": {}
+		};
+    var vFileHash = {
+      "AFRAME":"",
+      "AR":"",
+      "ARGEO": "",
+      "JSON": ""
+    }
+    var vFile4AR = "";
+    var vFile4ARGEO = "";
+    let searchStrings = ["CAMPOS","CAMROT","REF2MOVER","HTML4REF2MOVER","HTMLFILENAME", "TITLE", "MARKER", "SCALE", "DIR", "LOOPBOOL", "LAT", "LONG", "GLB", "SKY", "MARKER", "STARTPOS", "STARTPOS4K", "MIDDLE1POS", "MIDDLE1POS4K", "MIDDLE2POS", "MIDDLE2POS4K", "ENDPOS", "ENDPOS4K", "STARTROT", "STARTROT4K", "ENDROT", "ENDROT4K","DURATION","MOVEID","VERTICAL"];
+	  var vBasename = "animation1";
+	  var vDir = "../";
+	  var vMarker = "kanji";
+    var vVertical = "";
+    var comment4pos = "x-axis (-)left (+)right -- y-axis (-)down (+)up -- z-axis (-)front (+)rear";
+    var comment4rot = "1. rotation around x-axis -- 2. rotation around  y-axis -- 3. rotation around z-axis";
+
+    var outTypes = ["AFRAME","AR","ARGEO"];
+</script>
+
+ <script src="db/initdata_db.js"></script>
+
+ <script src="db/html4aframe_db.js"></script>
+ <script src="db/html4ar_db.js"></script>
+ <script src="db/html4argeo_db.js"></script>
+
+<script>
+    function getJSON4Data() {
+      var vJSON = {};
+      for (var i = 0; i < searchStrings.length; i++) {
+        vJSON[searchStrings[i]] = el(searchStrings[i]).value;
+      }
+      return vJSON;
+    }
+
+    function setJSON4Data(pJSON) {
+      var vJSON = pJSON || {};
+      for (var i = 0; i < searchStrings.length; i++) {
+        var vNode = el(searchStrings[i]);
+        if (vNode) {
+          if (vJSON.hasOwnProperty(searchStrings[i])) {
+            vNode.value = vJSON[searchStrings[i]];
+          }
+        } else {
+          console.error("DOM Node ["+searchStrings[i]+"] does not exist!");
+        }
+      }
+      return vJSON;
+    }
+
+
+function handleTypeChange(pType) {
+		    //alert(pType)
+    console.log("handleTypeChange("+pType.value+")");
+    switch (pType) {
+      case "ar":
+        show("marker4vertical");
+        handleMarkerOrientation(el("sVERTICAL").value);
+      break;
+      default:
+        handleMarkerOrientation("-");
+        hide("marker4vertical");
+    }
+}
+
+function handleMarkerOrientation(pOrientation) {
+  switch (pOrientation) {
+    case "vertical":
+      el("VERTICAL").value = "Vert";
+    break;
+    default:
+      el("VERTICAL").value = "";
+  }
+}
+
+function el(pID) {
+	var vNode = document.getElementById(pID);
+	if (vNode) {
+		console.log("DOM ID ["+pID+"] exists!")
+	} else {
+		console.log("DOM ID ["+pID+"] does not exist!")
+	}
+	return vNode;
+}
+
+function createHTML4Ref2Mover(pRef4Mover) {
+  pRef4Mover = pRef4Mover || el("REF2MOVER").value || "";
+  var vMoverID = "this." + el("MOVEID").value + "Mover";
+  if (pRef4Mover) {
+    el("HTML4REF2MOVER").value = vMoverID + "(" + el("REF2MOVER").value + ")";
+  } else {
+    el("HTML4REF2MOVER").value = "// synchronize process with other mover: " + vMoverID + "(myparentMover)";
+  }
+}
+
+function calcDIR(pFilename) {
+  var vFileSplit = [];
+  var vDir = "";
+  var vSep = "";
+  if (pFilename) {
+    vFileSplit = pFilename.split("/");
+    for (var i = 1; i < vFileSplit.length; i++) {
+      //console.log("Filesplit: "+vFileSplit[i]);
+      vDir += vSep +"..";
+      vSep = "/";
+    }
+  }
+  //alert("vDir="+vDir);
+  el("DIR").value = vDir;
+}
+
+function setFilenames4HTML(pFilename) {
+    var vFilename = pFilename || el("HTMLFILENAME").value || "animation";
+    var vBasename = vFilename;
+    if (vFilename && (vFilename.indexOf("/") >= 0)) {
+      vBasename = vFilename.substring(vFilename.lastIndexOf("/")+1)
+    };
+    vFileHash["BASENAME"] = vBasename;
+    vFileHash["PATHNAME"] = vFilename.substring(vFilename.lastIndexOf("/")+1);
+    for (var i = 0; i < outTypes.length; i++) {
+      if (outTypes[i] == "AR") {
+        vFileHash[outTypes[i]] = pFilename + "_" + outTypes[i].toLowerCase() + "_" + el("MARKER").value + ".html"
+      } else {
+        vFileHash[outTypes[i]]  = pFilename + "_" + outTypes[i].toLowerCase() + ".html";
+      }
+      el("FILE4"+outTypes[i]).innerHTML = vFileHash[outTypes[i]];
+    }
+}
+
+function saveJSON4LC() {
+  var data = getJSON4Data();
+  var json = JSON.stringify(data);
+  saveToLocalStorage(json,"html4aframe");
+}
+
+function replaceLabels() {
+  setFilenames4HTML(el("HTMLFILENAME").value);
+  saveJSON4LC();
+  let stringID = ["aframe", "ar", "argeo"];
+  let strings = ["aframe", "ar", "argeo"];
+  let replaceForm = document.getElementById('replaceForm');
+
+  for (let i = 0; i < strings.length; i++) {
+	strings[i] = vDataJSON["html4"+stringID[i]];
+    for (let j = 0; j < searchStrings.length; j++) {
+      let searchValue = "___" + searchStrings[j] + "___";
+      let replaceValue = el(searchStrings[j]).value;
+      strings[i] = replaceString(strings[i], searchValue, replaceValue);
+    }
+    var domID = "tHTML4"+stringID[i].toUpperCase();
+    el(domID).value = strings[i];
+  }
+
+  //console.log(strings);
+}
+
+function splitLatLong(pNode) {
+  if (pNode) {
+    var val = pNode.value;
+    val = val.replace(/[^,0-9\.\+\-]/g,"");
+    //alert("ID["+pNode.id+"] value='"+pNode.value+"' converted='"+val+"'");
+    val = replaceString(val,",","  ,  ");
+    pNode.value = val;
+
+    if (val.indexOf(",") > 0) {
+      geoarr = val.split(",");
+      el("LONG").value = geoarr[0];
+      el("LAT").value  = geoarr[1];
+    }
+  } else {
+    console.error("Split Latitude Longitude");
+  }
+}
+
+function updateGeolocation() {
+  el("out4GEOLOCATION").innerHTML = "( LONGITUDE: "+el("LONG").value+" , LATITUDE:"+el("LAT").value+" )"
+}
+
+function checkDuration(pNode) {
+  if (pNode && pNode.value) {
+    var vNumber = pNode.value.replace(/[^\.0-9]+/g,"");
+    var val = parseInt(vNumber);
+    var sec = val/1000;
+    el("DURATION4SEC").innerHTML = sec;
+    pNode.value = vNumber;
+  }
+}
+
+
+
+function checkGeolocation(pNode) {
+  if (pNode && pNode.value) {
+    pNode.value = pNode.value.replace(/[^\+\-\.0-9]+/g,"");
+    switch (pNode.id) {
+      case "LONG":
+        el("GEOLOC").value = pNode.value + "  ,  " + el("LAT").value;
+      break;
+      case "LAT":
+        el("GEOLOC").value = el("LONG").value + "  ,  " + pNode.value;
+      break;
+      default:
+
+    }
+  }
+}
+
+function checkPosition(pNode) {
+  if (pNode && pNode.value) {
+    //pNode.value = pNode.value.replace(/[^\+\-\.0-9]+/g,"");
+    pNode.value = pNode.value.replace(/[, ]+/g," ");
+    pNode.value = pNode.value.replace(/[A-Za-z]+/g,"");
+    pNode.value = pNode.value.replace(/^[ ]+/g,"");
+    pNode.value = pNode.value.replace(/[ ]+$/g," ");
+    el(pNode.id+"4K").value = pNode.value.replace(/[ ]+/g,",");
+    //alert(pNode.id+"4K='"+el(pNode.id+"4K").value+"'");
+  }
+}
+
+function clearLocalStorage(pKey) {
+  pKey = pKey || "html4aframe";
+  setJSON4Data(vDataJSON.initdata);
+  localStorage.removeItem(pKey);
+}
+// Function to save JSON object to local storage
+function saveToLocalStorage(pJSON,pKey) {
+  pKey = pKey || "html4aframe";
+  if (pJSON) {
+    localStorage.setItem(pKey, JSON.stringify(pJSON));
+  } else {
+    console.error("saveToLocalStorage(pJSON,pKey)");
+  }
+}
+
+// Function to load JSON object from local storage
+function loadFromLocalStorage(pKey) {
+  pKey = pKey || "html4aframe";
+  if (pKey) {
+    var vJSON = localStorage.getItem(pKey);
+    if (vJSON) {
+      return JSON.parse(vJSON);
+    } else {
+      console.error("loadFromLocalStorage(pKey) value for pKey d");
+      return null;
+    }
+  }
+}
+
+function saveGeneratedFile(pType) {
+  pType = pType.toUpperCase() || "AFRAME";
+  console.log("saveGeneratedFile("+pType+")");
+  var vBasename = vFileHash["BASENAME"];
+  var vContent = "undefined content";
+  var vFilename = "undefinedfile";
+  switch (pType) {
+    case "AFRAME":
+      vFilename = vBasename+"_" + pType.toLowerCase()  + ".html";
+      vContent = el("tHTML4AFRAME").value;
+      saveFile2HDD(vFilename,vContent);
+    break;
+    case "AR":
+      vFilename = vBasename+"_" + pType.toLowerCase() + "_" + el("MARKER").value + ".html";
+      vContent = el("tHTML4AR").value;
+      saveFile2HDD(vFilename,vContent);
+    break;
+    case "ARGEO":
+      vFilename = vBasename+"_" + pType.toLowerCase()  + ".html";
+      vContent = el("tHTML4ARGEO").value;
+      saveFile2HDD(vFilename,vContent);
+    break;
+    default:
+    vFilename = vBasename+"_html4aframe.json";
+    saveJSON2HDD(vFilename);
+  }
+}
+
+function saveJSON4HDD(pFilename) {
+  var vJSON = getJSON4Data();
+  var vContent = JSON.stringify(vJSON,null,4);
+  saveFile2HDD(pFilename,vContent);
+}
+</script>
+
+ <style>
+   body {
+     background-color: #c0c0c0;
+     font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+   }
+	 textarea {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+
+	width: 90%;
+}
+ </style>
+
+<body>
+
+
+  <center>
+    <hr>
+      <h1>JSON2AR File Creator - <span id4marker="version">1.0.93</span></h1>
+      <h2 id="HEADER4TITLE">Create Arame, AR and VR in HTML </h1>
+    <hr>
+  <center>
+    <button id="loadButtonHTML" onclick="">Load HTML</button>
+    <button id="loadButton" onclick="">Load JSON</button>
+    <button id="saveButton" onclick="">Save JSON</button>
+    <button id="initButton" onclick="clearLocalStorage(vKey4LC)">Init JSON</button>
+
+  <button id="saveButton" onclick="saveGeneratedFile('JSON')" style="display:none">Save generated JSON</button>
+   </center>
+  <table border=1>
+    <tr>
+      <td><b>Title</b></td>
+      <td><input type="text" id="TITLE" value="Bamberg Animation 2 Kran"> title of the AR animation </td>
+    </tr>
+    <tr>
+      <td><b>HTML Filename:</b></td>
+      <td><input type="text" id="HTMLFILENAME"  size="45" value="move360/bamberg/animation1" onchange="calcDIR(this.value);setFilenames4HTML(this.value)"> filename without HTML extension. Use the correct path for <a href="https://github.com/ar4nhey/litspatz4c" target="_blank">LitSpatz-Respository</a> </td>
+    </tr>
+    <!-- Add more input fields for the other strings here -->
+    <tr>
+      <td><b>Type of AR/VR:</b></td>
+      <td>
+        <select id="TYPEARVR" onchange="handleTypeChange(this.value)">
+          <option value="aframe">Aframe</option>
+          <option value="ar">AR Marker</option>
+          <option value="argeo">AR Geolocation</option>
+        </select>
+        <span id="marker4vertical" style="display:none">
+          <b> Marker Orientation: </b>
+          <input type="text" id="VERTICAL" size="10" value="" style="display:none">
+          <select id="sVERTICAL" onchange="handleMarkerOrientation(this.value)">
+            <option value="horizontal" selected>horizontal</option>
+            <option value="vertical">vertical</option>
+          </select>
+        </span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Marker:</b></td>
+      <td>
+        <select id="MARKER" onchange="setFilenames4HTML(el('HTMLFILENAME').value)">
+          <option value="hiro">hiro</option>
+          <option value="kanji" selected>kanji</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Sky Image Filename (Aframe):</b></td>
+      <td>
+        <input type="text" id="SKY" size="45" value="img360/Bamberg2_Kran.JPG"> use an <a href="https://en.wikiversity.org/wiki/equirectangular" target="_blank">equirectangular image</a> as sky image for the scene.
+      </td>
+    </tr>
+    <tr>
+      <td><b>Camera Position (Aframe):</b></td>
+      <td>
+        <input type="text" id="CAMPOS" value="0 3 3">
+        <span name="poscomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Camera Rotation (Aframe):</b></td>
+      <td>
+        <input type="text" id="CAMROT" value="0 0 0">
+        <span name="rotcomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>GLB Filename:</b></td>
+      <td><input type="text" id="GLB"  size="45" value="model3d/treasure-chest_cutted_2.glb"></td>
+    </tr>
+    <tr>
+      <td><b>Scale GLB Object:</b></td>
+      <td><input type="text" id="SCALE" value="1.0"></td>
+    </tr>
+    <tr>
+      <td><b>Geolocation</b></td>
+      <td>
+        <input type="text" id="GEOLOC" size="45" value="12.92983530222529 , 50.83043675689984" onchange="splitLatLong(this)">
+        <a href="https://niebert.github.io/openlayer_selectlocation/index.html" target="_blank"> Select Geolocation </a>
+        <br>
+        Longitude
+        <input type="text" id="LONG" value="12.92983530222529" onchange="checkGeolocation(this)">
+        Latitude
+        <input type="text" id="LAT" value="50.83043675689984" onchange="checkGeolocation(this)">
+      </td>
+    </tr>
+    <tr>
+      <td><b>Animation Loop:</b></td>
+      <td>
+        <select id="LOOPBOOL">
+          <option value="true" selected>yes</option>
+          <option value="false">no</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Track MOVEID</b></td>
+      <td><input type="text" id="MOVEID" value="floating"> ID for the movement - e.g. "floating" "flying" "running" "jumping"</td>
+    </tr>
+    <tr>
+      <td><b>Track DURATION</b></td>
+      <td><input type="text" id="DURATION" value="30000" onchange="checkDuration(this)"> in milliseconds = <span id="DURATION4SEC">30</span> seconds</td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <img src="img/convcomb_STARTPOS_ENDPOS_ord3.png" alt="Convex combination Order 3">
+      </td>
+    </tr>
+    <tr>
+      <td><b>Track Position STARTPOS</b></td>
+      <td>
+        <input type="text" id="STARTPOS" value="0 0 0" onchange="checkPosition(this)">
+        <input type="text" id="STARTPOS4K" value="0 , 0 , 0" style="display:none">
+        <span name="poscomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Track Position MIDDLE1POS</td>
+      <td>
+        <input type="text" id="MIDDLE1POS" value="4 0 -5" onchange="checkPosition(this)">
+        <input type="text" id="MIDDLE1POS4K" value="4 , 0 , -5" style="display:none">
+        <span name="poscomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Track Position MIDDLE2POS</b></td>
+      <td>
+        <input type="text" id="MIDDLE2POS" value="6 0 -7" onchange="checkPosition(this)">
+        <input type="text" id="MIDDLE2POS4K" value="6, 0 , -7" style="display:none">
+        <span name="poscomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Track Position ENDPOS</b></td>
+      <td>
+        <input type="text" id="ENDPOS" value="-2 0 -3" onchange="checkPosition(this)">
+        <input type="text" id="ENDPOS4K" value="-2,0,-3" style="display:none">
+        <span name="poscomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Rotation START x-Axis, y-Axis, z-Axis</b></td>
+      <td>
+        <input type="text" id="STARTROT" value="0 0 0" onchange="checkPosition(this)">
+        <input type="text" id="STARTROT4K" value="0 , 0 , 0" style="display:none">
+        <select id="STARTROT4DEG">
+          <option value=",\"rad\"" selected>radians</option>
+          <option value=",\"deg\"">degree</option>
+        </select>
+        <span name="rotcomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Rotation END x-Axis, y-Axis, z-Axis</b></td>
+      <td>
+        <input type="text" id="ENDROT" value="0 0 0" onchange="checkPosition(this)">
+        <input type="text" id="ENDROT4K" value="0 , 0 , 0" style="display:none">
+        <select id="ENDROT4DEG">
+          <option value=",\"rad\"" selected>radians</option>
+          <option value=",\"deg\"">degree</option>
+        </select>
+        <span name="rotcomment"></span>
+      </td>
+    </tr>
+    <tr>
+      <td><b>Linked Aframe Mover</b></td>
+      <td>
+        <input type="text" id="REF2MOVER" value="" onchange="createHTML4Ref2Mover(this.value)">
+        <input type="text" id="HTML4REF2MOVER" value="" style="display:none">
+        synchronize timing and processes with a parent mover by providing the parent mover ID e.g. "running" or "floating"
+      </td>
+    </tr>
+  </table>
+  <button onclick="replaceLabels();return false;" style="background-color: #ffbbbb">
+    <h3>
+      &nbsp;
+      Create AR Files
+      &nbsp;
+    </h3>
+  </button>
+
+  <!-- DIR -->
+  <input type="text" id="DIR" value=".." style="display:none">
+
+<hr>
+  <h2>HTML Output Aframe, AR.js and AR.js Geolocation</h2>
+
+  <!-- OUTPUT Textareas -->
+  <h3>
+  	HTML for Aframe
+  </h3>
+  <tt>
+    <h4 id="FILE4AFRAME">
+  	myfile_aframe.html
+    </h4>
+  </tt>
+  <p>
+    <input type="button" value="Save AFRAME" onclick="saveGeneratedFile('AFRAME')">
+  </p>
+  <textarea id="tHTML4AFRAME" rows="7"></textarea>
+  <h3>
+  	HTML for AR.js
+  </h3>
+  <tt>
+    <h4 id="FILE4AR">
+      myfile_ar_hiro.html
+    </h4>
+  </tt>
+  <p>
+    <input type="button" value="Save AR" onclick="saveGeneratedFile('AR')">
+  </p>
+  <textarea id="tHTML4AR" rows="7"></textarea>
+  <h3>
+  	HTML for AR.js Geolocation
+  </h3>
+  <tt>
+    <h4 id="FILE4ARGEO">
+  	   myfile_argeo.html
+    </h4>
+  </tt>
+  <h4 id="out4GEOLOCATION">
+     (Longitude,Latitude)
+  </h4>
+  <p>
+    <input type="button" value="Save ARGEO" onclick="saveGeneratedFile('ARGEO')">
+  </p>
+  <textarea id="tHTML4ARGEO" rows="7"></textarea>
+</center>
+
+<script>
+
+  var elems = document.getElementsByName("poscomment");
+  for (var i = 0; i < elems.length; i++) {
+    elems[i].innerHTML = comment4pos;
+  }
+  var elems = document.getElementsByName("rotcomment");
+  for (var i = 0; i < elems.length; i++) {
+    elems[i].innerHTML = comment4rot;
+  }
+  updateGeolocation();
+</script>
+
+<script>
+// Get the buttons
+var loadButton = document.getElementById('loadButton');
+var saveButton = document.getElementById('saveButton');
+var loadButtonHTML = document.getElementById('loadButtonHTML');
+
+// Add event listener for load button
+loadButton.addEventListener('click', function() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(event) {
+        var file = event.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(){
+            var json = JSON.parse(reader.result);
+            console.log(json);
+            if (json) {
+              setJSON4Data(json);
+              saveToLocalStorage(json,"html4aframe");
+            };
+          }
+        reader.readAsText(file);
+    };
+    input.click();
+});
+
+// Add event listener for load button
+loadButtonHTML.addEventListener('click', function() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.html';
+    input.onchange = function(event) {
+        var vJSON = {};
+        var file = event.target.files[0];
+        // Filename: event.target.files[0].name;
+        vJSON["HTMLFILENAME"] = file.name;
+        var reader = new FileReader();
+        reader.onload = function(){
+            var vContent = reader.result;
+            if (vContent) {
+              vJSON = parseLoadedFile(vContent,vJSON);
+              setJSON4Data(vJSON);
+              console.log(JSON.stringify(vJSON,null,4));
+            };
+          }
+        reader.readAsText(file);
+    };
+    input.click();
+});
+
+function extractFilename(pJSON) {
+  var vFilename = "html4aframe.json";
+  if (pJSON) {
+    if (pJSON.hasOwnProperty("TITLE")) {
+      vFilename = pJSON.TITLE;
+      vFilename = vFilename.replace(/[^A-Za-z0-9_\-]+/g,"_");
+    } else {
+      console.log("JSON contains no TITLE sattribute");
+    };
+  }
+  return vFilename;
+}
+
+// Add event listener for save button
+saveButton.addEventListener('click', function() {
+    var data = getJSON4Data();
+    var json = JSON.stringify(data,null,4);
+    saveToLocalStorage(json,"html4aframe");
+    var blob = new Blob([json], {type: "application/json"});
+    var url  = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var vFilename = extractFilename(data);
+    console.log("Save JSON: "+vFilename);
+    a.download = vFilename;
+    a.href = url;
+    a.click();
+});
+
+var vJSON = loadFromLocalStorage("html4aframe");
+if (vJSON) {
+  setJSON4Data(vJSON);
+} else {
+  console.log("No JSON data in local storage 'html4aframe'");
+}
+
+var vInitFile = el("DIR").value;
+calcDIR(vInitFile);
+setFilenames4HTML(el("HTMLFILENAME").value);
+checkDuration(el("DURATION").value);
+</script>
+
+<center>
+  Repository: <a href="https://github.com/ar4nhey/litspatz4c" target="_blank">LitSpatz</a>
+</center>
+</body>
+</html>
