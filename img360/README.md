@@ -15,6 +15,9 @@ The images in this subfolder are designed to be used with popular AR frameworks,
 
 All images in this subfolder are in equirectangular format, which is a 2:1 aspect ratio panorama that can be used to create immersive 360-degree experiences.
 
+## Generate Equirectangular Images
+You can create equirectangular images with [Hugin](https://hugin.sourceforge.io/download/) - Howto: [Hugin Tutorials](https://hugin.sourceforge.io/tutorials/multi-row/en.shtml)
+
 ## Usage
 
 To use these images in your AR project, simply copy the desired image into your project directory and reference it in your code. Make sure to adjust the image's dimensions and formatting as needed to match your project's requirements.
